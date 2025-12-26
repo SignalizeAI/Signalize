@@ -15,14 +15,19 @@ function showUser(user) {
   userSection.classList.remove("hidden");
 }
 
-document.getElementById("googleLogin").onclick = async () => {
-  await supabase.auth.signInWithOAuth({
+document.getElementById("googleLogin").addEventListener("click", async () => {
+  const { error } = await supabase.auth.signInWithOAuth({
     provider: "google",
     options: {
-      redirectTo: chrome.runtime.getURL("sidepanel.html")
-    }
+      redirectTo:
+        "https://plcnbgocfafalblbhmlikcplkmnnmcfj.chromiumapp.org/supabase/callback",
+    },
   });
-};
+
+  if (error) {
+    console.error("Google login error:", error.message);
+  }
+});
 
 document.getElementById("emailLogin").onclick = async () => {
   const email = prompt("Enter your email");
@@ -31,8 +36,8 @@ document.getElementById("emailLogin").onclick = async () => {
   await supabase.auth.signInWithOtp({
     email,
     options: {
-      emailRedirectTo: chrome.runtime.getURL("sidepanel.html")
-    }
+      emailRedirectTo: chrome.runtime.getURL("sidepanel.html"),
+    },
   });
 
   alert("Check your email for the login link.");
