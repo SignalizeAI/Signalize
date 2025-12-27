@@ -87,9 +87,49 @@ function updateUI(session) {
         userInitialSpan.textContent = fullName.charAt(0).toUpperCase();
     }
     statusMsg.textContent = ""; 
+
+    extractWebsiteContent();
+
   } else {
     loginView.classList.remove('hidden');
     welcomeView.classList.add('hidden');
+  }
+}
+
+async function extractWebsiteContent() {
+  try {
+    const tabs = await chrome.tabs.query({ active: true, currentWindow: true });
+    const tab = tabs[0];
+
+    if (!tab?.id || !tab.url) return;
+
+    if (
+      tab.url.startsWith("chrome://") ||
+      tab.url.startsWith("about:") ||
+      tab.url.startsWith("edge://")
+    ) {
+      console.info("Skipping extraction on restricted page:", tab.url);
+      return;
+    }
+
+    chrome.tabs.sendMessage(
+      tab.id,
+      { type: "EXTRACT_WEBSITE_CONTENT" },
+      (response) => {
+        if (chrome.runtime.lastError) {
+          console.warn("Extractor not available on this page");
+          return;
+        }
+
+        if (response?.ok) {
+          console.log("📄 Extracted website content:", response.content);
+        } else {
+          console.error("Extraction failed:", response?.error);
+        }
+      }
+    );
+  } catch (err) {
+    console.error("Error extracting website content:", err);
   }
 }
 
