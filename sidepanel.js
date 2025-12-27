@@ -9,6 +9,7 @@ let hasExtractedOnce = false;
 const loginView = document.getElementById('login-view');
 const welcomeView = document.getElementById('welcome-view');
 const userNameSpan = document.getElementById('user-name');
+const userEmailSpan = document.getElementById('user-email');
 const userInitialSpan = document.getElementById('user-initial');
 const signInBtn = document.getElementById('google-signin');
 const signOutBtn = document.getElementById('sign-out');
@@ -85,15 +86,15 @@ function updateUI(session) {
     const user = session.user;
     const fullName = user.user_metadata.full_name || user.email;
     if (userNameSpan) userNameSpan.textContent = fullName;
+    if (userEmailSpan) {
+      userEmailSpan.textContent = user.email || 'user@signalize.ai';
+    }
     if (userInitialSpan && fullName && fullName.length > 0) {
       userInitialSpan.textContent = fullName.charAt(0).toUpperCase();
     }
     statusMsg.textContent = "";
 
-    if (!hasExtractedOnce) {
-      hasExtractedOnce = true;
-      extractWebsiteContent();
-    }
+    extractWebsiteContent();
 
   } else {
     loginView.classList.remove('hidden');
@@ -103,11 +104,26 @@ function updateUI(session) {
 }
 
 async function extractWebsiteContent() {
+  const contentCard = document.getElementById('website-content');
+  const contentLoading = document.getElementById('content-loading');
+  const contentError = document.getElementById('content-error');
+  const contentData = document.getElementById('content-data');
+
+  // Show loading state
+  if (contentCard) contentCard.classList.remove('hidden');
+  if (contentLoading) contentLoading.classList.remove('hidden');
+  if (contentError) contentError.classList.add('hidden');
+  if (contentData) contentData.classList.add('hidden');
+
   try {
     const tabs = await chrome.tabs.query({ active: true, currentWindow: true });
     const tab = tabs[0];
 
-    if (!tab?.id || !tab.url) return;
+    if (!tab?.id || !tab.url) {
+      if (contentLoading) contentLoading.classList.add('hidden');
+      if (contentError) contentError.classList.remove('hidden');
+      return;
+    }
 
     if (
       tab.url.startsWith("chrome://") ||
@@ -115,6 +131,8 @@ async function extractWebsiteContent() {
       tab.url.startsWith("edge://")
     ) {
       console.info("Skipping extraction on restricted page:", tab.url);
+      if (contentLoading) contentLoading.classList.add('hidden');
+      if (contentError) contentError.classList.remove('hidden');
       return;
     }
 
@@ -122,13 +140,17 @@ async function extractWebsiteContent() {
       tab.id,
       { type: "EXTRACT_WEBSITE_CONTENT" },
       async (response) => {
+        if (contentLoading) contentLoading.classList.add('hidden');
+
         if (chrome.runtime.lastError) {
           console.warn("Extractor not available on this page");
+          if (contentError) contentError.classList.remove('hidden');
           return;
         }
 
-        if (response?.ok) {
+        if (response?.ok && response.content) {
           console.log("📄 Extracted website content:", response.content);
+          displayWebsiteContent(response.content);
 
           try {
             const analysis = await analyzeWebsiteContent(response.content);
@@ -139,11 +161,86 @@ async function extractWebsiteContent() {
 
         } else {
           console.error("Extraction failed:", response?.error);
+          if (contentError) contentError.classList.remove('hidden');
         }
       }
     );
   } catch (err) {
     console.error("Error extracting website content:", err);
+    if (contentLoading) contentLoading.classList.add('hidden');
+    if (contentError) contentError.classList.remove('hidden');
+  }
+}
+
+function displayWebsiteContent(content) {
+  const contentCard = document.getElementById('website-content');
+  const contentData = document.getElementById('content-data');
+  const contentError = document.getElementById('content-error');
+
+  if (!contentCard || !contentData) return;
+
+  // Hide error, show data
+  if (contentError) contentError.classList.add('hidden');
+  contentData.classList.remove('hidden');
+  contentCard.classList.remove('hidden');
+
+  // Display title
+  const titleEl = document.getElementById('content-title-text');
+  if (titleEl) {
+    titleEl.textContent = content.title || 'No title available';
+  }
+
+  // Display meta description
+  const metaDescEl = document.getElementById('content-meta-description');
+  const metaDescSection = document.getElementById('meta-description-section');
+  if (metaDescEl) {
+    if (content.metaDescription) {
+      metaDescEl.textContent = content.metaDescription;
+      if (metaDescSection) metaDescSection.classList.remove('hidden');
+    } else {
+      if (metaDescSection) metaDescSection.classList.add('hidden');
+    }
+  }
+
+  // Display headings
+  const headingsEl = document.getElementById('content-headings');
+  const headingsSection = document.getElementById('headings-section');
+  if (headingsEl) {
+    headingsEl.innerHTML = '';
+    if (content.headings && content.headings.length > 0) {
+      content.headings.forEach(heading => {
+        const li = document.createElement('li');
+        li.textContent = heading;
+        headingsEl.appendChild(li);
+      });
+      if (headingsSection) headingsSection.classList.remove('hidden');
+    } else {
+      if (headingsSection) headingsSection.classList.add('hidden');
+    }
+  }
+
+  // Display paragraphs
+  const paragraphsEl = document.getElementById('content-paragraphs');
+  const paragraphsSection = document.getElementById('paragraphs-section');
+  if (paragraphsEl) {
+    paragraphsEl.innerHTML = '';
+    if (content.paragraphs && content.paragraphs.length > 0) {
+      content.paragraphs.forEach(para => {
+        const li = document.createElement('li');
+        li.textContent = para;
+        paragraphsEl.appendChild(li);
+      });
+      if (paragraphsSection) paragraphsSection.classList.remove('hidden');
+    } else {
+      if (paragraphsSection) paragraphsSection.classList.add('hidden');
+    }
+  }
+
+  // Display URL
+  const urlEl = document.getElementById('content-url');
+  if (urlEl && content.url) {
+    urlEl.href = content.url;
+    urlEl.textContent = content.url;
   }
 }
 
@@ -159,6 +256,34 @@ if (dropdownHeader && dropdownCard) {
     dropdownCard.classList.toggle('expanded');
   });
 }
+
+// Listen for tab change messages from background script
+chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+  if (message.type === "TAB_CHANGED") {
+    // Check if user is logged in and welcome view is visible
+    supabase.auth.getSession().then(({ data }) => {
+      if (data.session && welcomeView && !welcomeView.classList.contains('hidden')) {
+        // Small delay to ensure content script is ready
+        setTimeout(() => {
+          extractWebsiteContent();
+        }, 300);
+      }
+    });
+  }
+});
+
+// Also listen for visibility changes (when sidepanel becomes visible)
+document.addEventListener('visibilitychange', () => {
+  if (!document.hidden) {
+    supabase.auth.getSession().then(({ data }) => {
+      if (data.session && welcomeView && !welcomeView.classList.contains('hidden')) {
+        setTimeout(() => {
+          extractWebsiteContent();
+        }, 300);
+      }
+    });
+  }
+});
 
 supabase.auth.onAuthStateChange((event, session) => {
   updateUI(session);
