@@ -510,7 +510,7 @@ supabase.auth.getSession().then(({ data }) => {
   updateUI(data.session);
 });
 
-const profileMenu = document.getElementById("menu-profile");
+const profileMenu = document.getElementById("menu-saved-analyses");
 
 profileMenu?.addEventListener("click", (e) => {
   e.preventDefault();
