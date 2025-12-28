@@ -4,12 +4,8 @@
   "description": "Cursor for sales pages 🚀",
   "main": "background.js",
   "scripts": {
-    "build": "npm run build:supabase && npm run build:sidepanel",
-    "build:supabase": "esbuild src/sidepanel-entry.js --bundle --format=iife --global-name=supabase --outfile=extension/supabase.bundle.js",
-    "build:sidepanel": "esbuild sidepanel.js --bundle --platform=browser --format=esm --outfile=extension/sidepanel.bundle.js",
-    "watch": "npm run watch:supabase",
-    "watch:supabase": "esbuild src/sidepanel-entry.js --bundle --format=iife --global-name=supabase --outfile=extension/supabase.bundle.js --watch",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "build": "esbuild src/sidepanel-entry.js --bundle --format=iife --outfile=extension/supabase.bundle.js && esbuild sidepanel.js --bundle --platform=browser --format=esm --outfile=extension/sidepanel.bundle.js",
+    "watch": "esbuild src/sidepanel-entry.js --bundle --format=iife --outfile=extension/supabase.bundle.js --watch"
   },
   "keywords": [],
   "author": "",
