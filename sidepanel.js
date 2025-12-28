@@ -4,7 +4,6 @@ if (!window.supabase) {
   throw new Error('Supabase client not initialized. Make sure extension/supabase.bundle.js is loaded.');
 }
 const supabase = window.supabase;
-let hasExtractedOnce = false;
 let lastAnalysis = null;
 let lastExtractedMeta = null;
 
@@ -80,6 +79,18 @@ async function signOut() {
   if (error) console.error("Sign out error:", error);
 }
 
+function showSavedAnalysesView() {
+  document.getElementById("website-content")?.classList.add("hidden");
+  document.getElementById("ai-analysis")?.classList.add("hidden");
+
+  document.getElementById("content-loading")?.classList.add("hidden");
+  document.getElementById("ai-loading")?.classList.add("hidden");
+
+  document.getElementById("saved-analyses")?.classList.remove("hidden");
+
+  loadSavedAnalyses();
+}
+
 function updateUI(session) {
   if (session) {
     loginView.classList.add('hidden');
@@ -101,7 +112,6 @@ function updateUI(session) {
   } else {
     loginView.classList.remove('hidden');
     welcomeView.classList.add('hidden');
-    hasExtractedOnce = false;
   }
 }
 
@@ -160,7 +170,26 @@ async function extractWebsiteContent() {
             domain: new URL(response.content.url).hostname
           };
 
-          document.getElementById("saveButton")?.classList.remove("active");
+          const btn = document.getElementById("saveButton");
+          btn?.classList.remove("active");
+          if (btn) btn.dataset.label = "Save";
+
+          const { data: sessionData } = await supabase.auth.getSession();
+          const user = sessionData?.session?.user;
+
+          if (user) {
+            const { data } = await supabase
+              .from("saved_analyses")
+              .select("id")
+              .eq("user_id", user.id)
+              .eq("domain", lastExtractedMeta.domain)
+              .maybeSingle();
+
+            if (data) {
+              btn?.classList.add("active");
+              if (btn) btn.dataset.label = "Remove";
+            }
+          }
 
           try {
             const aiCard = document.getElementById('ai-analysis');
@@ -293,6 +322,93 @@ function displayAIAnalysis(analysis) {
   }
 }
 
+function renderSavedItem(item) {
+  const wrapper = document.createElement("div");
+  wrapper.className = "saved-item";
+
+  wrapper.innerHTML = `
+    <div class="saved-item-header">
+      <div>
+        <strong>${item.title || item.domain}</strong>
+        <div style="font-size:12px; opacity:0.7">${item.domain}</div>
+      </div>
+      <button class="delete-saved-btn">✕</button>
+    </div>
+
+    <div class="saved-item-body hidden">
+      <p><strong>Sales readiness:</strong> ${item.sales_readiness_score ?? "—"}</p>
+      <p><strong>What they do:</strong> ${item.what_they_do || "—"}</p>
+      <p><strong>Target customer:</strong> ${item.target_customer || "—"}</p>
+      <p><strong>Value proposition:</strong> ${item.value_proposition || "—"}</p>
+      <p><strong>Best sales persona:</strong> ${item.best_sales_persona || "—"}</p>
+      <p style="opacity:0.7; font-size:13px">
+        (${item.best_sales_persona_reason || "—"})
+      </p>
+      <p><strong>Sales angle:</strong> ${item.sales_angle || "—"}</p>
+    </div>
+  `;
+
+  // Toggle accordion
+  const header = wrapper.querySelector(".saved-item-header");
+  const body = wrapper.querySelector(".saved-item-body");
+
+  header.addEventListener("click", (e) => {
+    if (e.target.classList.contains("delete-saved-btn")) return;
+    body.classList.toggle("hidden");
+  });
+
+  // Delete saved company
+  wrapper.querySelector(".delete-saved-btn").addEventListener("click", async (e) => {
+    e.stopPropagation();
+
+    const { data: sessionData } = await supabase.auth.getSession();
+    const user = sessionData?.session?.user;
+    if (!user) return;
+
+    await supabase
+      .from("saved_analyses")
+      .delete()
+      .eq("user_id", user.id)
+      .eq("id", item.id);
+
+    wrapper.remove();
+  });
+
+  return wrapper;
+}
+
+async function loadSavedAnalyses() {
+  document.getElementById("saved-analyses")?.classList.remove("hidden");
+  const listEl = document.getElementById("saved-list");
+  const loadingEl = document.getElementById("saved-loading");
+  const emptyEl = document.getElementById("saved-empty");
+
+  listEl.innerHTML = "";
+  loadingEl.classList.remove("hidden");
+  emptyEl.classList.add("hidden");
+
+  const { data: sessionData } = await supabase.auth.getSession();
+  const user = sessionData?.session?.user;
+  if (!user) return;
+
+  const { data, error } = await supabase
+    .from("saved_analyses")
+    .select("*")
+    .eq("user_id", user.id)
+    .order("created_at", { ascending: false });
+
+  loadingEl.classList.add("hidden");
+
+  if (error || !data || data.length === 0) {
+    emptyEl.classList.remove("hidden");
+    return;
+  }
+
+  data.forEach(item => {
+    listEl.appendChild(renderSavedItem(item));
+  });
+}
+
 if (signInBtn) signInBtn.addEventListener('click', signInWithGoogle);
 if (signOutBtn) signOutBtn.addEventListener('click', signOut);
 
@@ -359,6 +475,7 @@ button?.addEventListener("click", async () => {
 
     button.classList.remove("active");
     button.dataset.label = "Save";
+    loadSavedAnalyses();
   } else {
     const { error } = await supabase.from("saved_analyses").insert({
       user_id: user.id,
@@ -381,6 +498,7 @@ button?.addEventListener("click", async () => {
 
     button.classList.add("active");
     button.dataset.label = "Remove";
+    loadSavedAnalyses();
   }
 });
 
@@ -390,4 +508,14 @@ supabase.auth.onAuthStateChange((event, session) => {
 
 supabase.auth.getSession().then(({ data }) => {
   updateUI(data.session);
+});
+
+const profileMenu = document.getElementById("menu-profile");
+
+profileMenu?.addEventListener("click", (e) => {
+  e.preventDefault();
+
+  document.querySelector(".dropdown-card")?.classList.remove("expanded");
+
+  showSavedAnalysesView();
 });

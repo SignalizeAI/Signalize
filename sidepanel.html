@@ -45,7 +45,7 @@
           <div class="dropdown-content" id="dropdown-content">
             <ul class="menu-list">
               <li>
-                <a href="#" class="menu-item active">
+                <a href="#" class="menu-item active" id="menu-profile">
                   <img src="icons/profile.svg" alt="" class="menu-icon" />
                   Profile
                 </a>
@@ -185,6 +185,24 @@
             </div>
           </div>
         </div>
+
+        <!-- Saved Analyses -->
+        <div id="saved-analyses" class="website-content-card hidden">
+          <div class="content-header">
+            <h3 class="content-title">Saved Analyses</h3>
+          </div>
+
+          <div id="saved-loading" class="content-loading hidden">
+            <p>Loading saved companies…</p>
+          </div>
+
+          <div id="saved-empty" class="content-empty hidden">
+            <p>No saved companies yet.</p>
+          </div>
+
+          <div id="saved-list" class="saved-list"></div>
+        </div>
+
       </div>
     </div>
 
