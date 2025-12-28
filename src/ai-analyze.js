@@ -10,7 +10,11 @@ Return ONLY valid JSON in this exact shape:
   "targetCustomer": "",
   "valueProposition": "",
   "salesAngle": "",
-  "salesReadinessScore": 0
+  "salesReadinessScore": 0,
+  "bestSalesPersona": {
+    "persona": "",
+    "reason": ""
+  }
 }
 
 Rules:
@@ -18,6 +22,13 @@ Rules:
 - No explanations
 - No extra text
 - Strings only
+- persona must be ONE of the following EXACT values:
+  - "Founder / CEO"
+  - "Enterprise Account Executive"
+  - "Mid-Market AE"
+  - "SMB Sales Rep"
+  - "Product-Led Growth (PLG)"
+  - "Partnerships / Alliances"
 
 Guidelines for salesAngle:
 - One short paragraph
@@ -28,6 +39,11 @@ salesReadinessScore rules:
 - Integer between 0 and 100
 - Higher = easier to sell to
 - Consider clarity, maturity, and market focus
+
+bestSalesPersona rules:
+- Choose the MOST suitable persona from the list
+- Base decision on company size, sales motion, and buying complexity
+- reason must be ONE concise sentence
 
 Website information:
 Title: ${extracted.title}

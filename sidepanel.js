@@ -278,32 +278,19 @@ function displayAIAnalysis(analysis) {
   const valueEl = document.getElementById('ai-value-prop');
   const salesEl = document.getElementById('ai-sales-angle');
   const scoreEl = document.getElementById('ai-sales-score');
+  const personaEl = document.getElementById('ai-sales-persona');
+  const personaReasonEl = document.getElementById('ai-sales-persona-reason');
 
   if (whatEl) whatEl.textContent = analysis.whatTheyDo || '—';
   if (targetEl) targetEl.textContent = analysis.targetCustomer || '—';
   if (valueEl) valueEl.textContent = analysis.valueProposition || '—';
   if (salesEl) salesEl.textContent = analysis.salesAngle || '—';
   if (scoreEl) scoreEl.textContent = analysis.salesReadinessScore ?? '—';
-}
-
-async function saveCurrentAnalysis() {
-  if (!lastAnalysis || !lastExtractedMeta) return;
-
-  const { data } = await supabase.auth.getSession();
-  const user = data?.session?.user;
-  if (!user) return;
-
-  await supabase.from('saved_analyses').insert({
-    user_id: user.id,
-    domain: lastExtractedMeta.domain,
-    url: lastExtractedMeta.url,
-    title: lastExtractedMeta.title,
-    what_they_do: lastAnalysis.whatTheyDo,
-    target_customer: lastAnalysis.targetCustomer,
-    value_proposition: lastAnalysis.valueProposition,
-    sales_angle: lastAnalysis.salesAngle,
-    sales_readiness_score: lastAnalysis.salesReadinessScore
-  });
+  if (personaEl) personaEl.textContent = analysis.bestSalesPersona?.persona || '—';
+  if (personaReasonEl) {
+    const reason = analysis.bestSalesPersona?.reason;
+    personaReasonEl.textContent = reason ? `(${reason})` : '—';
+  }
 }
 
 if (signInBtn) signInBtn.addEventListener('click', signInWithGoogle);
@@ -382,7 +369,9 @@ button?.addEventListener("click", async () => {
       target_customer: lastAnalysis.targetCustomer,
       value_proposition: lastAnalysis.valueProposition,
       sales_angle: lastAnalysis.salesAngle,
-      sales_readiness_score: lastAnalysis.salesReadinessScore
+      sales_readiness_score: lastAnalysis.salesReadinessScore,
+      best_sales_persona: lastAnalysis.bestSalesPersona?.persona,
+      best_sales_persona_reason: lastAnalysis.bestSalesPersona?.reason,
     });
 
     if (error) {
