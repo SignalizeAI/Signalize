@@ -474,6 +474,18 @@ body:has(#welcome-view:not(.hidden)) {
   border-bottom: 1px solid #333;
 }
 
+.content-header svg {
+  stroke: rgba(255, 255, 255, 0.65);
+}
+
+.content-header button {
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
 .content-title {
   margin: 0;
   font-size: 18px;
@@ -716,3 +728,27 @@ body:has(#welcome-view:not(.hidden)) {
   color: rgba(174, 203, 250, 1);
   text-decoration: underline;
 }
+
+.copy-btn {
+  background: none;
+  border: none;
+  padding: 6px;
+  cursor: pointer;
+  border-radius: 6px;
+  transition: background 0.15s ease;
+}
+
+.copy-btn:hover {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.copy-icon {
+  width: 18px;
+  height: 18px;
+  stroke: currentColor;
+  fill: none;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+

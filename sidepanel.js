@@ -781,3 +781,75 @@ document.addEventListener("click", () => {
     exportToggle?.setAttribute("aria-expanded", "false");
   }
 });
+
+function buildCopyText() {
+  if (!lastAnalysis || !lastExtractedMeta) return "";
+
+  return `
+Website: ${lastExtractedMeta.title || ""}
+Domain: ${lastExtractedMeta.domain || ""}
+URL: ${lastExtractedMeta.url || ""}
+
+What they do:
+${lastAnalysis.whatTheyDo || "—"}
+
+Target customer:
+${lastAnalysis.targetCustomer || "—"}
+
+Value proposition:
+${lastAnalysis.valueProposition || "—"}
+
+Sales angle:
+${lastAnalysis.salesAngle || "—"}
+
+Sales readiness score:
+${lastAnalysis.salesReadinessScore ?? "—"}
+
+Best sales persona:
+${lastAnalysis.bestSalesPersona?.persona || "—"}
+${lastAnalysis.bestSalesPersona?.reason ? `(${lastAnalysis.bestSalesPersona.reason})` : ""}
+`.trim();
+}
+
+const copyBtn = document.getElementById("copyButton");
+
+copyBtn?.addEventListener("click", async () => {
+  const text = buildCopyText();
+  if (!text) return;
+
+  try {
+    await navigator.clipboard.writeText(text);
+
+    const existing = copyBtn.querySelector(".copy-tooltip");
+    if (existing) existing.remove();
+
+    const tooltip = document.createElement("span");
+    tooltip.className = "copy-tooltip";
+    tooltip.textContent = "Copied";
+
+    Object.assign(tooltip.style, {
+      position: "absolute",
+      top: "-28px",
+      left: "50%",
+      transform: "translateX(-50%)",
+      background: "rgba(0,0,0,0.85)",
+      color: "#fff",
+      fontSize: "11px",
+      padding: "4px 6px",
+      borderRadius: "4px",
+      whiteSpace: "nowrap",
+      pointerEvents: "none",
+      zIndex: "9999"
+    });
+
+    copyBtn.style.position = "relative";
+    copyBtn.appendChild(tooltip);
+
+    setTimeout(() => {
+      tooltip.remove();
+    }, 1200);
+
+  } catch (err) {
+    console.error("Copy failed:", err);
+  }
+});
