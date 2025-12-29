@@ -176,9 +176,27 @@
         <div id="saved-analyses" class="website-content-card hidden">
           <div class="content-header">
             <h3 class="content-title">Saved Analyses</h3>
-                    <div class="export-actions">
-              <button id="export-csv" class="secondary-btn">Export CSV</button>
-              <button id="export-xlsx" class="secondary-btn">Export Excel</button>
+            <div class="export-actions">
+              <button
+                id="export-menu-toggle"
+                class="secondary-btn"
+                aria-haspopup="true"
+                aria-expanded="false"
+                aria-label="Export options"
+              >
+                <svg viewBox="0 0 24 24" class="export-toggle-icon" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"></path>
+                  <polyline points="16 6 12 2 8 6"></polyline>
+                  <line x1="12" y1="2" x2="12" y2="15"></line>
+                </svg>
+              </button>
+              
+              <div id="export-menu" class="export-menu hidden" role="menu" aria-labelledby="export-menu-toggle">
+                <ul class="menu-list">
+                  <li><button id="export-csv" class="menu-item" role="menuitem">CSV (.csv)</button></li>
+                  <li><button id="export-xlsx" class="menu-item" role="menuitem">Excel (.xlsx)</button></li>
+                </ul>
+              </div>
             </div>
           </div>
 
