@@ -221,16 +221,7 @@ async function extractWebsiteContent() {
           };
 
           const currentDomain = lastExtractedMeta.domain;
-          const sameDomain = lastAnalyzedDomain === currentDomain;
           lastContentHash = await hashContent(response.content);
-          if (
-            !forceRefresh &&
-            sameDomain &&
-            existing &&
-            existing.content_hash === lastContentHash
-          ) {
-            return;
-          }
           lastAnalyzedDomain = currentDomain;
 
           const btn = document.getElementById("saveButton");
