@@ -9,6 +9,7 @@ let lastContentHash = null;
 let lastAnalysis = null;
 let lastExtractedMeta = null;
 let lastAnalyzedDomain = null;
+let forceRefresh = false;
 
 const loginView = document.getElementById('login-view');
 const welcomeView = document.getElementById('welcome-view');
@@ -125,6 +126,7 @@ function showContentBlocked(message) {
   lastContentHash = null;
   lastExtractedMeta = null;
   lastAnalyzedDomain = null;
+  forceRefresh = false;
 }
 
 function showSavedAnalysesView() {
@@ -218,9 +220,9 @@ async function extractWebsiteContent() {
           };
 
           const currentDomain = lastExtractedMeta.domain;
-
+          const sameDomain = lastAnalyzedDomain === currentDomain;
           lastContentHash = await hashContent(response.content);
-          if (lastAnalyzedDomain === currentDomain) return;
+          if (!forceRefresh && sameDomain) return;
           lastAnalyzedDomain = currentDomain;
 
           const btn = document.getElementById("saveButton");
@@ -255,7 +257,7 @@ async function extractWebsiteContent() {
 
             if (aiCard) aiCard.classList.remove('hidden');
 
-            if (existing && existing.content_hash === lastContentHash) {
+            if (!forceRefresh && existing && existing.content_hash === lastContentHash) {
               if (aiLoading) aiLoading.classList.add("hidden");
               lastAnalysis = {
                 whatTheyDo: existing.what_they_do,
@@ -268,7 +270,7 @@ async function extractWebsiteContent() {
                   reason: existing.best_sales_persona_reason
                 }
               };
-
+              displayWebsiteContent(response.content);
               displayAIAnalysis(lastAnalysis);
 
             } else {
@@ -727,6 +729,27 @@ button?.addEventListener("click", async () => {
     button.classList.add("active");
     button.dataset.label = "Remove";
     loadSavedAnalyses();
+  }
+});
+
+const refreshBtn = document.getElementById("refreshButton");
+
+refreshBtn?.addEventListener("click", async () => {
+  if (!lastExtractedMeta || refreshBtn.disabled) return;
+
+  refreshBtn.disabled = true;
+  forceRefresh = true;
+
+  document.getElementById("website-content")?.classList.remove("hidden");
+  document.getElementById("content-error")?.classList.add("hidden");
+  document.getElementById("ai-data")?.classList.add("hidden");
+  document.getElementById("ai-loading")?.classList.remove("hidden");
+
+  try {
+    await extractWebsiteContent();
+  } finally {
+    forceRefresh = false;
+    refreshBtn.disabled = false;
   }
 });
 
