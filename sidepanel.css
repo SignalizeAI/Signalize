@@ -607,3 +607,42 @@ body:has(#welcome-view:not(.hidden)) {
 .saved-item-header:active {
   background-color: #2a2a2a;
 }
+
+.refresh-btn {
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  outline: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.refresh-icon {
+  width: 20px;
+  height: 20px;
+
+  fill: none;
+  stroke: #888888;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+
+  transition: all 0.25s ease;
+}
+
+.refresh-btn:hover .refresh-icon {
+  stroke: #ffffff;
+  transform: rotate(30deg) scale(1.1);
+}
+.refresh-btn:disabled {
+  cursor: not-allowed;
+}
+
+.refresh-btn:disabled .refresh-icon {
+  animation: spin 0.9s linear infinite;
+  stroke: #ffffff;
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
