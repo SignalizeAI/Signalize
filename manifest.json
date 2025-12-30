@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "SignalizeAI",
-  "version": "0.1.0",
+  "version": "1.0.0",
   "description": "Turn any business website into sales-ready signals.",
   "permissions": [
     "sidePanel",
@@ -35,5 +35,6 @@
   ],
   "content_security_policy": {
     "extension_pages": "script-src 'self'; object-src 'self'"
-  }
+  },
+  "key": "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAxIs6IQDTKGaqsP+rmkdeLj0e+oC8KXqVNHKN500OuKb0zeEgTV6oVgmFkUivgllbTqHgheIPuGaa4p+ouz+0AqQkB1dXxctjyvWTRqpvBdrdM5TTnyCESWBWe2GER04uv5ooD9ZrEm6JHpFiTXJOq97YXA5rzaOiiAB/4MmZ5Dv55MV7pPsPEHVMxzMqFDlO4veaN+cbAda/KRM21NgAleUXeZezUPKIxCwzWLwT4e5hGinen7tH8Mt98aJaeGkRpwGBJYnveNOoQj6w78JE6sr0iijnx78dh799JdJzredTnshuJNLgaPKf2aB8dLXa8Od4Ld5+wXmDXZbCTNsvRwIDAQAB"
 }
