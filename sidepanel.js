@@ -611,8 +611,11 @@ function renderSavedItem(item) {
   copySavedBtn.addEventListener("click", async (e) => {
     e.stopPropagation();
 
+    const settings = await loadSettings();
+    const formatLabel = settings.copyFormat === "short" ? "short" : "full";
+
     const text = await buildSavedCopyText(item);
-    copyAnalysisText(text, copySavedBtn);
+    copyAnalysisText(text, copySavedBtn, formatLabel);
   });
 
   header.addEventListener("click", (e) => {
@@ -1038,7 +1041,7 @@ ${item.best_sales_persona_reason ? `(${item.best_sales_persona_reason})` : ""}
   return text.trim();
 }
 
-function copyAnalysisText(text, anchorEl) {
+function copyAnalysisText(text, anchorEl, formatLabel = "") {
   if (!text || !anchorEl) return;
 
   navigator.clipboard.writeText(text).then(() => {
@@ -1047,7 +1050,9 @@ function copyAnalysisText(text, anchorEl) {
 
     const tooltip = document.createElement("span");
     tooltip.className = "copy-tooltip";
-    tooltip.textContent = "Copied";
+    tooltip.textContent = formatLabel
+      ? `Copied (${formatLabel})`
+      : "Copied";
 
     Object.assign(tooltip.style, {
       position: "absolute",
@@ -1076,8 +1081,11 @@ function copyAnalysisText(text, anchorEl) {
 const copyBtn = document.getElementById("copyButton");
 
 copyBtn?.addEventListener("click", async () => {
+  const settings = await loadSettings();
+  const formatLabel = settings.copyFormat === "short" ? "short" : "full";
+
   const text = await buildCopyText();
-  copyAnalysisText(text, copyBtn);
+  copyAnalysisText(text, copyBtn, formatLabel);
 });
 
 document.querySelectorAll('input[name="copy-format"]').forEach(radio => {
