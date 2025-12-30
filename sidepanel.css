@@ -514,7 +514,7 @@ body:has(#welcome-view:not(.hidden)) {
   right: 0;
   top: 100%;
   margin-top: 8px;
-  width: 110px;
+  min-width: unset;
   background-color: #1A1A1A;
   border: 1px solid #1A1A1A;
   border-radius: 8px;
@@ -835,4 +835,29 @@ body:has(#welcome-view:not(.hidden)) {
   background-color: rgba(74, 222, 128, 0.15);
   color: #4ade80;
   border-color: #4ade80;
+}
+
+.export-menu {
+  overflow: visible;
+}
+
+.export-menu .menu-list {
+  padding: 4px;
+}
+
+.export-menu .menu-item {
+  font-size: 13px;
+  padding: 8px 10px;
+  border-radius: 6px;
+  line-height: 1.2;
+  white-space: nowrap;
+  width: auto;
+}
+
+.export-menu .menu-item:hover {
+  background-color: #2a2a2a;
+}
+
+.export-actions {
+  overflow: visible;
 }
