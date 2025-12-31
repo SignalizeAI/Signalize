@@ -63,6 +63,6 @@ See [`privacy.md`](./PRIVACY.md) for full details.
 
 For questions or feedback:
 
-📧 **[signalizeaiorg@gmail.com](mailto:signalizeaiorg@gmail.com)**
+📧 **[support@signalizeai.org](mailto:support@signalizeai.org)**
 
 ---
