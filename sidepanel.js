@@ -1,5 +1,4 @@
 import { analyzeWebsiteContent } from "./src/ai-analyze.js";
-import ExcelJS from "exceljs/dist/exceljs.min.js";
 
 if (!window.supabase) {
   throw new Error('Supabase client not initialized. Make sure extension/supabase.bundle.js is loaded.');
@@ -11,6 +10,8 @@ let lastExtractedMeta = null;
 let lastAnalyzedDomain = null;
 let forceRefresh = false;
 let currentView = "analysis";
+let selectionMode = false;
+let selectedSavedIds = new Set();
 let activeFilters = {
   minScore: 0,
   persona: ""
@@ -32,6 +33,8 @@ const signOutBtn = document.getElementById('sign-out');
 const statusMsg = document.getElementById('status-msg');
 const settingsMenu = document.querySelector('.menu-item img[src*="settings"]')?.closest('.menu-item');
 const settingsView = document.getElementById("settings-view");
+const multiSelectToggle = document.getElementById("multi-select-toggle");
+const selectionBackBtn = document.getElementById("selection-back-btn");
 
 async function signInWithGoogle() {
   try {
@@ -91,7 +94,24 @@ async function signInWithGoogle() {
   }
 }
 
+function updateDeleteState() {
+  if (!multiSelectToggle) return;
+
+  const shouldDisable =
+    selectionMode && selectedSavedIds.size === 0;
+
+  multiSelectToggle.classList.toggle("disabled", shouldDisable);
+  multiSelectToggle.setAttribute(
+    "aria-disabled",
+    shouldDisable ? "true" : "false"
+  );
+}
+
 function navigateTo(view) {
+
+  if (view !== "saved" && selectionMode) {
+    exitSelectionMode();
+  }
   currentView = view;
 
   document.getElementById("ai-analysis")?.classList.add("hidden");
@@ -629,6 +649,12 @@ function renderSavedItem(item) {
         </svg>
       </button>
     </div>
+      <input
+        type="checkbox"
+        class="saved-select-checkbox hidden"
+        data-id="${item.id}"
+        aria-label="Select saved analysis ${item.title || item.domain}"
+      />
   </div>
 
   <div class="saved-item-body hidden">
@@ -672,9 +698,13 @@ function renderSavedItem(item) {
 
   const header = wrapper.querySelector(".saved-item-header");
   const body = wrapper.querySelector(".saved-item-body");
+  const checkbox = wrapper.querySelector(".saved-select-checkbox");
 
   const copySavedBtn = wrapper.querySelector(".copy-saved-btn");
 
+  checkbox?.addEventListener("click", (e) => {
+    e.stopPropagation();
+  });
   copySavedBtn.addEventListener("click", async (e) => {
     e.stopPropagation();
 
@@ -685,7 +715,31 @@ function renderSavedItem(item) {
     copyAnalysisText(text, copySavedBtn, formatLabel);
   });
 
+  checkbox?.addEventListener("change", (e) => {
+    const checkboxEl = e.currentTarget;
+    const id = checkboxEl.dataset.id;
+
+    if (!id) return;
+
+    wrapper.classList.toggle("selected", checkboxEl.checked);
+
+    if (checkboxEl.checked) {
+      selectedSavedIds.add(id);
+    } else {
+      selectedSavedIds.delete(id);
+    }
+
+    updateDeleteState();
+  });
+
   header.addEventListener("click", (e) => {
+    if (selectionMode) {
+      if (e.target === checkbox) return;
+      checkbox.checked = !checkbox.checked;
+      checkbox.dispatchEvent(new Event("change"));
+      return;
+    }
+
     if (
       e.target.closest(".delete-saved-btn") ||
       e.target.closest(".copy-saved-btn")
@@ -702,6 +756,7 @@ function renderSavedItem(item) {
   });
 
   wrapper.querySelector(".delete-saved-btn").addEventListener("click", async (e) => {
+    if (selectionMode) return;
     e.stopPropagation();
 
     const { data: sessionData } = await supabase.auth.getSession();
@@ -812,6 +867,7 @@ async function exportToExcel(rows) {
 }
 
 async function loadSavedAnalyses() {
+  exitSelectionMode();
   document.getElementById("saved-analyses")?.classList.remove("hidden");
   const listEl = document.getElementById("saved-list");
   const loadingEl = document.getElementById("saved-loading");
@@ -1130,6 +1186,97 @@ ${item.best_sales_persona_reason ? `(${item.best_sales_persona_reason})` : ""}
   return text.trim();
 }
 
+function exitSelectionMode() {
+  selectionMode = false;
+  selectedSavedIds.clear();
+
+  document.querySelectorAll(".saved-item.selected")
+    .forEach(el => el.classList.remove("selected"));
+
+  updateSelectionUI();
+  updateDeleteState();
+}
+
+function updateSelectionUI() {
+  document.querySelectorAll(".saved-item").forEach(item =>
+    toggleItemSelectionUI(item, selectionMode)
+  );
+
+  if (exportToggle) {
+    exportToggle.classList.toggle("hidden", selectionMode);
+  }
+
+  if (filterToggle) {
+    filterToggle.classList.toggle("hidden", selectionMode);
+  }
+
+  if (selectionBackBtn) {
+    selectionBackBtn.classList.toggle("hidden", !selectionMode);
+  }
+
+  if (!multiSelectToggle) return;
+
+  if (selectionMode) {
+    multiSelectToggle.title = "Delete selected";
+    multiSelectToggle.setAttribute("aria-label", "Delete selected analyses");
+    multiSelectToggle.innerHTML = `
+      <svg
+        class="multi-select-icon danger"
+        width="18"
+        height="18"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="2"
+        stroke-linecap="round"
+        stroke-linejoin="round"
+      >
+        <polyline points="3 6 5 6 21 6"></polyline>
+        <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"></path>
+        <path d="M10 11v6"></path>
+        <path d="M14 11v6"></path>
+        <path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"></path>
+      </svg>
+    `;
+  } else {
+    multiSelectToggle.title = "Select multiple";
+    multiSelectToggle.setAttribute("aria-label", "Select multiple analyses");
+    multiSelectToggle.innerHTML = `
+      <svg
+        class="multi-select-icon"
+        width="18"
+        height="18"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="2"
+        stroke-linecap="round"
+        stroke-linejoin="round"
+      >
+        <rect x="3" y="3" width="18" height="18" rx="3"></rect>
+        <path d="M9 12l2 2 4-4"></path>
+      </svg>
+    `;
+  }
+}
+
+function toggleItemSelectionUI(itemEl, enable) {
+  const checkbox = itemEl.querySelector(".saved-select-checkbox");
+  const copyBtn = itemEl.querySelector(".copy-saved-btn");
+  const deleteBtn = itemEl.querySelector(".delete-saved-btn");
+
+  if (enable) {
+    checkbox?.classList.remove("hidden");
+    copyBtn?.classList.add("hidden");
+    deleteBtn?.classList.add("hidden");
+  } else {
+    if (checkbox) checkbox.checked = false;
+    checkbox?.classList.add("hidden");
+    copyBtn?.classList.remove("hidden");
+    deleteBtn?.classList.remove("hidden");
+  }
+}
+
 function copyAnalysisText(text, anchorEl, formatLabel = "") {
   if (!text || !anchorEl) return;
 
@@ -1253,6 +1400,50 @@ document.addEventListener("click", (e) => {
   }
 });
 
+multiSelectToggle?.addEventListener("click", async () => {
+  if (selectionMode && selectedSavedIds.size === 0) return;
+
+  if (!selectionMode) {
+    selectionMode = true;
+    selectedSavedIds.clear();
+    updateSelectionUI();
+    updateDeleteState();
+    return;
+  }
+
+  if (selectedSavedIds.size === 0) {
+    return;
+  }
+
+  const ids = Array.from(selectedSavedIds);
+
+  const { data: sessionData } = await supabase.auth.getSession();
+  const user = sessionData?.session?.user;
+  if (!user) return;
+
+  const { error } = await supabase
+    .from("saved_analyses")
+    .delete()
+    .eq("user_id", user.id)
+    .in("id", ids);
+
+  if (error) {
+    console.warn("Delete failed, UI may be out of sync", error);
+    return;
+  }
+
+  document.querySelectorAll(".saved-item").forEach(el => {
+    const checkbox = el.querySelector(".saved-select-checkbox");
+    if (checkbox && ids.includes(checkbox.dataset.id)) {
+      el.remove();
+    }
+  });
+
+  exitSelectionMode();
+  updateSavedEmptyState();
+  applySavedFilters();
+});
+
 const filterApplyBtn = document.querySelector(".filter-apply");
 
 filterApplyBtn?.addEventListener("click", () => {
@@ -1298,4 +1489,8 @@ scoreSlider?.addEventListener("input", () => {
   if (scoreLabel) {
     scoreLabel.textContent = `${scoreSlider.value} – 100`;
   }
+});
+
+selectionBackBtn?.addEventListener("click", () => {
+  exitSelectionMode();
 });
