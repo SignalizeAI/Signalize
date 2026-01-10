@@ -319,10 +319,10 @@ function applySavedFilters() {
   }
 
   const items = document.querySelectorAll("#saved-list .saved-item");
+  let visibleCount = 0;
 
   items.forEach(item => {
     let visible = true;
-
     const itemScore = Number(item.dataset.salesScore || 0);
 
     if (activeFilters.minScore > 0) {
@@ -333,8 +333,10 @@ function applySavedFilters() {
       visible = item.dataset.persona === activeFilters.persona;
     }
 
-    item.style.display = visible ? "" : "none";
+    item.style.display = visible ? "" : "none";  
+    if (visible) visibleCount++;
   });
+  updateSavedEmptyState(visibleCount);
   updateSelectAllIcon();
 }
 
@@ -389,19 +391,38 @@ function updateUI(session) {
   }
 }
 
-function updateSavedEmptyState() {
+function updateSavedActionsVisibility(count) {
+  const filterToggle = document.getElementById("filter-toggle");
+  const exportToggle = document.getElementById("export-menu-toggle");
+  const multiSelectToggle = document.getElementById("multi-select-toggle");
+
+  const showBasicActions = count > 0 ? "" : "none";
+  if (filterToggle) filterToggle.style.display = showBasicActions;
+  if (exportToggle) exportToggle.style.display = showBasicActions;
+
+  if (multiSelectToggle) {
+    multiSelectToggle.style.display = count > 1 ? "" : "none";
+  }
+}
+
+function updateSavedEmptyState(visibleCountOverride = null) {
   const listEl = document.getElementById("saved-list");
   const emptyEl = document.getElementById("saved-empty");
 
   if (!listEl || !emptyEl) return;
 
-  const hasItems = listEl.querySelector(".saved-item");
+  const allItems = listEl.querySelectorAll(".saved-item");
+  const totalCount = allItems.length;
+  
+  const countToUse = (visibleCountOverride !== null) ? visibleCountOverride : totalCount;
 
-  if (hasItems) {
+  if (totalCount > 0) {
     emptyEl.classList.add("hidden");
   } else {
     emptyEl.classList.remove("hidden");
   }
+
+  updateSavedActionsVisibility(countToUse);
 }
 
 async function shouldAutoAnalyze() {
@@ -1387,8 +1408,11 @@ function exitSelectionMode() {
   document.querySelectorAll(".saved-item.selected")
     .forEach(el => el.classList.remove("selected"));
 
+  const visibleCount = Array.from(document.querySelectorAll("#saved-list .saved-item"))
+    .filter(item => item.style.display !== "none").length;
   updateSelectionUI();
   updateDeleteState();
+  updateSavedActionsVisibility(visibleCount);
 }
 
 function updateSelectionUI() {
