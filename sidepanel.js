@@ -861,6 +861,34 @@ function renderSavedItem(item) {
     updateSavedEmptyState();
   });
 
+  let pressTimer;
+
+  const startPress = (e) => {
+    if (selectionMode || (e.type === "mousedown" && e.button !== 0)) return;
+
+    pressTimer = setTimeout(() => {
+      enterSelectionModeFromItem();
+    }, 600);
+  };
+
+  const cancelPress = () => {
+    clearTimeout(pressTimer);
+  };
+
+  const enterSelectionModeFromItem = () => {
+    selectionMode = true;
+    updateSelectionUI();
+    handleSelection(false, true); 
+  };
+
+  header.addEventListener("mousedown", startPress);
+  header.addEventListener("mouseup", cancelPress);
+  header.addEventListener("mouseleave", cancelPress);
+
+  header.addEventListener("touchstart", startPress, { passive: true });
+  header.addEventListener("touchend", cancelPress);
+  header.addEventListener("touchcancel", cancelPress);
+    
   return wrapper;
 }
 
