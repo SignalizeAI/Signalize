@@ -1156,3 +1156,25 @@ body:has(#welcome-view:not(.hidden)) {
 .reset-button-ui:active {
   transform: scale(0.98);
 }
+
+.filter-group {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+}
+
+#filter-min-score, #filter-max-score {
+  position: absolute;
+  width: 100%;
+  pointer-events: none;
+  background: none;
+  appearance: none;
+  margin-top: 25px;
+}
+
+#filter-min-score::-webkit-slider-thumb, 
+#filter-max-score::-webkit-slider-thumb {
+  pointer-events: auto;
+  position: relative;
+  z-index: 2;
+}
