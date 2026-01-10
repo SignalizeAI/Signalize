@@ -16,6 +16,7 @@ let selectedSavedIds = new Set();
 let isRangeSelecting = false;
 let activeFilters = {
   minScore: 0,
+  maxScore: 100,
   persona: ""
 };
 
@@ -325,8 +326,8 @@ function applySavedFilters() {
     let visible = true;
     const itemScore = Number(item.dataset.salesScore || 0);
 
-    if (activeFilters.minScore > 0) {
-      visible = itemScore >= activeFilters.minScore;
+    if (itemScore < activeFilters.minScore || itemScore > activeFilters.maxScore) {
+      visible = false;
     }
 
     if (visible && activeFilters.persona) {
@@ -336,6 +337,7 @@ function applySavedFilters() {
     item.style.display = visible ? "" : "none";  
     if (visible) visibleCount++;
   });
+  
   updateSavedEmptyState(visibleCount);
   updateSelectAllIcon();
 }
@@ -1696,9 +1698,8 @@ multiSelectToggle?.addEventListener("click", async () => {
 const filterApplyBtn = document.querySelector(".filter-apply");
 
 filterApplyBtn?.addEventListener("click", () => {
-  activeFilters.minScore = Number(
-    document.getElementById("filter-sales-score")?.value || 0
-  );
+  activeFilters.minScore = Number(document.getElementById("filter-min-score")?.value || 0);
+  activeFilters.maxScore = Number(document.getElementById("filter-max-score")?.value || 100);
 
   activeFilters.persona =
     document.getElementById("filter-persona")?.value
@@ -1715,12 +1716,14 @@ const filterResetBtn = document.querySelector(".filter-reset");
 
 filterResetBtn?.addEventListener("click", () => {
   activeFilters.minScore = 0;
-  activeFilters.persona = "";
+  activeFilters.maxScore = 100;
 
-  const scoreInput = document.getElementById("filter-sales-score");
+  const minInput = document.getElementById("filter-min-score");
+  const maxInput = document.getElementById("filter-max-score");
   const personaInput = document.getElementById("filter-persona");
   
-  if (scoreInput) scoreInput.value = 0;
+  if (minInput) minInput.value = 0;
+  if (maxInput) maxInput.value = 100;
   if (personaInput) personaInput.value = "";
   if (scoreLabel) scoreLabel.textContent = `0 – 100`;
 
@@ -1734,17 +1737,30 @@ filterResetBtn?.addEventListener("click", () => {
   filterToggle?.setAttribute("aria-expanded", "false");
 });
 
-const scoreSlider = document.getElementById("filter-sales-score");
+const minSlider = document.getElementById("filter-min-score");
+const maxSlider = document.getElementById("filter-max-score");
 const scoreLabel = document.getElementById("filter-score-value");
 
-scoreSlider?.addEventListener("input", () => {
-  activeFilters.minScore = Number(scoreSlider.value);
-  applySavedFilters();
+function updateScoreFilter() {
+  let minVal = Number(minSlider.value);
+  let maxVal = Number(maxSlider.value);
+
+  if (minVal > maxVal) {
+    minSlider.value = maxVal;
+    minVal = maxVal;
+  }
+
+  activeFilters.minScore = minVal;
+  activeFilters.maxScore = maxVal;
 
   if (scoreLabel) {
-    scoreLabel.textContent = `${scoreSlider.value} – 100`;
+    scoreLabel.textContent = `${minVal} – ${maxVal}`;
   }
-});
+  applySavedFilters();
+}
+
+minSlider?.addEventListener("input", updateScoreFilter);
+maxSlider?.addEventListener("input", updateScoreFilter);
 
 selectionBackBtn?.addEventListener("click", () => {
   exitSelectionMode();
