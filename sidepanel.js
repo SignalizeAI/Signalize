@@ -323,6 +323,11 @@ function applySavedFilters() {
   let visibleCount = 0;
 
   items.forEach(item => {
+    if (item.dataset.isPendingDelete === "true") {
+      item.style.display = "none";
+      return; 
+    }
+
     let visible = true;
     const itemScore = Number(item.dataset.salesScore || 0);
 
@@ -415,11 +420,14 @@ function updateSavedEmptyState(visibleCountOverride = null) {
   if (!listEl || !emptyEl || !filterEmptyEl) return;
 
   const allItems = listEl.querySelectorAll(".saved-item");
-  const totalCount = allItems.length;
   
-  const countToUse = (visibleCountOverride !== null) ? visibleCountOverride : totalCount;
+  const actualItemsInList = Array.from(allItems).filter(item => 
+    item.dataset.isPendingDelete !== "true"
+  ).length;
+  
+  const countToUse = (visibleCountOverride !== null) ? visibleCountOverride : actualItemsInList;
 
-  if (totalCount === 0) {
+  if (actualItemsInList === 0) {
     emptyEl.classList.remove("hidden");
     filterEmptyEl.classList.add("hidden");
   } 
@@ -859,22 +867,31 @@ function renderSavedItem(item) {
     handleSelection(e.shiftKey);
   });
 
-  wrapper.querySelector(".delete-saved-btn").addEventListener("click", async (e) => {
+  wrapper.querySelector(".delete-saved-btn").addEventListener("click", (e) => {
     if (selectionMode) return;
     e.stopPropagation();
 
-    const { data: sessionData } = await supabase.auth.getSession();
-    const user = sessionData?.session?.user;
-    if (!user) return;
+    const itemId = item.id;
+    
+    wrapper.dataset.isPendingDelete = "true";
+    wrapper.style.display = "none";
+    
+    applySavedFilters(); 
 
-    await supabase
-      .from("saved_analyses")
-      .delete()
-      .eq("user_id", user.id)
-      .eq("id", item.id);
+    showUndoToast("Analysis removed", 
+      () => {
+        delete wrapper.dataset.isPendingDelete;
+        applySavedFilters();
+      }, 
+      async () => {
+        const { data: sessionData } = await supabase.auth.getSession();
+        const user = sessionData?.session?.user;
+        if (!user) return;
 
-    wrapper.remove();
-    updateSavedEmptyState();
+        await supabase.from("saved_analyses").delete().eq("user_id", user.id).eq("id", itemId);
+        wrapper.remove();
+      }
+    );
   });
 
   let pressTimer;
@@ -1653,47 +1670,35 @@ document.addEventListener("click", (e) => {
 });
 
 multiSelectToggle?.addEventListener("click", async () => {
-  if (multiSelectToggle.classList.contains("disabled")) return;
+  if (multiSelectToggle.classList.contains("disabled") || !selectionMode || selectedSavedIds.size === 0) return;
 
-  if (!selectionMode) {
-    selectionMode = true;
-    selectedSavedIds.clear();
-    updateSelectionUI();
-    updateDeleteState();
-    return;
-  }
-
-  if (selectedSavedIds.size === 0) return;
-
-  const ids = Array.from(selectedSavedIds);
-
-  const { data } = await supabase.auth.getSession();
-  const user = data?.session?.user;
-  if (!user) return;
-
-  const { error } = await supabase
-    .from("saved_analyses")
-    .delete()
-    .eq("user_id", user.id)
-    .in("id", ids);
-
-  if (error) {
-    console.warn("Delete failed, UI may be out of sync", error);
-    return;
-  }
+  const idsToDelete = Array.from(selectedSavedIds);
+  const elementsToFlag = [];
 
   document.querySelectorAll(".saved-item").forEach(el => {
-    const checkbox = el.querySelector(".saved-select-checkbox");
-    if (checkbox && ids.includes(checkbox.dataset.id)) {
-      el.remove();
+    const cb = el.querySelector(".saved-select-checkbox");
+    if (cb && idsToDelete.includes(cb.dataset.id)) {
+      el.dataset.isPendingDelete = "true";
+      elementsToFlag.push(el);
     }
   });
 
   exitSelectionMode();
-  updateSavedEmptyState();
   applySavedFilters();
-});
 
+  showUndoToast(`${idsToDelete.length} analyses removed`, 
+    () => {
+      elementsToFlag.forEach(el => delete el.dataset.isPendingDelete);
+      applySavedFilters();
+    }, 
+    async () => {
+      const { data } = await supabase.auth.getSession();
+      if (!data?.session?.user) return;
+      await supabase.from("saved_analyses").delete().eq("user_id", data.session.user.id).in("id", idsToDelete);
+      elementsToFlag.forEach(el => el.remove());
+    }
+  );
+});
 
 const filterApplyBtn = document.querySelector(".filter-apply");
 
@@ -1718,21 +1723,15 @@ filterResetBtn?.addEventListener("click", () => {
   activeFilters.minScore = 0;
   activeFilters.maxScore = 100;
 
-  const minInput = document.getElementById("filter-min-score");
-  const maxInput = document.getElementById("filter-max-score");
-  const personaInput = document.getElementById("filter-persona");
-  
-  if (minInput) minInput.value = 0;
-  if (maxInput) maxInput.value = 100;
+  if (minSlider) minSlider.value = 0;
+  if (maxSlider) maxSlider.value = 100;
   if (personaInput) personaInput.value = "";
   if (scoreLabel) scoreLabel.textContent = `0 – 100`;
 
   const items = document.querySelectorAll("#saved-list .saved-item");
-  items.forEach(item => {
-    item.style.display = "";
-  });
+  items.forEach(item => item.style.display = "");
+  
   updateSavedEmptyState(items.length);
-
   filterPanel?.classList.add("hidden");
   filterToggle?.setAttribute("aria-expanded", "false");
 });
@@ -1782,3 +1781,63 @@ selectAllBtn?.addEventListener("click", () => {
   if (!selectionMode) return;
   toggleSelectAllVisible();
 });
+
+let undoTimeout = null;
+
+function showUndoToast(message, onUndo, onFinalize) {
+  if (undoTimeout) {
+    clearTimeout(undoTimeout);
+  }
+
+  let toast = document.getElementById("undo-toast");
+  if (!toast) {
+    toast = document.createElement("div");
+    toast.id = "undo-toast";
+    toast.className = "toast-snackbar";
+    document.body.appendChild(toast);
+  }
+
+  toast.innerHTML = `
+    <div class="toast-content">
+      <div class="toast-main">
+        <span>${message}</span>
+      </div>
+      <div class="toast-actions">
+        <button id="undo-button">UNDO</button>
+        <button id="close-toast-btn" title="Finalize and Close">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="18" y1="6" x2="6" y2="18"></line>
+            <line x1="6" y1="6" x2="18" y2="18"></line>
+          </svg>
+        </button>
+      </div>
+    </div>
+    <div class="undo-progress-container">
+      <div class="undo-progress-bar"></div>
+    </div>
+  `;
+
+  toast.classList.remove("show");
+  void toast.offsetWidth; 
+  toast.classList.add("show");
+
+  const undoBtn = toast.querySelector("#undo-button");
+  const closeBtn = toast.querySelector("#close-toast-btn");
+  
+  undoBtn.onclick = () => {
+    clearTimeout(undoTimeout);
+    toast.classList.remove("show");
+    onUndo();
+  };
+
+  closeBtn.onclick = () => {
+    clearTimeout(undoTimeout);
+    toast.classList.remove("show");
+    onFinalize();
+  };
+
+  undoTimeout = setTimeout(() => {
+    toast.classList.remove("show");
+    onFinalize();
+  }, 5000);
+}
