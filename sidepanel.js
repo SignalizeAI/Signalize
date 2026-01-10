@@ -443,6 +443,10 @@ function updateSavedEmptyState(visibleCountOverride = null) {
   updateSavedActionsVisibility(countToUse);
 }
 
+document.getElementById("start-analysis-btn")?.addEventListener("click", () => {
+  navigateTo("analysis");
+});
+
 document.getElementById("no-results-reset")?.addEventListener("click", () => {
   const resetBtn = document.querySelector(".filter-reset");
   if (resetBtn) {
