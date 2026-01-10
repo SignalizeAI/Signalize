@@ -368,7 +368,19 @@
           </div>
 
           <div id="saved-empty" class="content-empty hidden">
-            <p>No saved companies yet.</p>
+            <div class="empty-state-container">
+              <div class="empty-icon">
+                <svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="opacity: 0.4;">
+                  <path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"></path>
+                  <polyline points="14 2 14 8 20 8"></polyline>
+                </svg>
+              </div>
+              <p class="empty-title">No saved companies yet</p>
+              <p class="empty-subtitle">Your saved website analyses will appear here once you start exploring.</p>
+              <button id="start-analysis-btn" class="reset-button-ui">
+                Analyze current website
+              </button>
+            </div>
           </div>
 
           <div id="filter-empty" class="content-empty hidden">

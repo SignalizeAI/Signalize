@@ -443,6 +443,10 @@ function updateSavedEmptyState(visibleCountOverride = null) {
   updateSavedActionsVisibility(countToUse);
 }
 
+document.getElementById("start-analysis-btn")?.addEventListener("click", () => {
+  navigateTo("analysis");
+});
+
 document.getElementById("no-results-reset")?.addEventListener("click", () => {
   const resetBtn = document.querySelector(".filter-reset");
   if (resetBtn) {
@@ -899,7 +903,12 @@ function renderSavedItem(item) {
 
   const startPress = (e) => {
     if (selectionMode || (e.type === "mousedown" && e.button !== 0)) return;
-    
+
+    const visibleItems = Array.from(document.querySelectorAll("#saved-list .saved-item"))
+      .filter(item => item.style.display !== "none" && item.dataset.isPendingDelete !== "true");
+
+    if (visibleItems.length <= 1) return;
+
     preventNextClick = false;
 
     pressTimer = setTimeout(() => {
@@ -1670,7 +1679,17 @@ document.addEventListener("click", (e) => {
 });
 
 multiSelectToggle?.addEventListener("click", async () => {
-  if (multiSelectToggle.classList.contains("disabled") || !selectionMode || selectedSavedIds.size === 0) return;
+  if (multiSelectToggle.classList.contains("disabled")) return;
+
+  if (!selectionMode) {
+    selectionMode = true;
+    selectedSavedIds.clear();
+    updateSelectionUI();
+    updateDeleteState();
+    return;
+  }
+
+  if (selectedSavedIds.size === 0) return;
 
   const idsToDelete = Array.from(selectedSavedIds);
   const elementsToFlag = [];
