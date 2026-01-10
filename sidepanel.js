@@ -408,22 +408,37 @@ function updateSavedActionsVisibility(count) {
 function updateSavedEmptyState(visibleCountOverride = null) {
   const listEl = document.getElementById("saved-list");
   const emptyEl = document.getElementById("saved-empty");
+  const filterEmptyEl = document.getElementById("filter-empty");
 
-  if (!listEl || !emptyEl) return;
+  if (!listEl || !emptyEl || !filterEmptyEl) return;
 
   const allItems = listEl.querySelectorAll(".saved-item");
   const totalCount = allItems.length;
   
   const countToUse = (visibleCountOverride !== null) ? visibleCountOverride : totalCount;
 
-  if (totalCount > 0) {
-    emptyEl.classList.add("hidden");
-  } else {
+  if (totalCount === 0) {
     emptyEl.classList.remove("hidden");
+    filterEmptyEl.classList.add("hidden");
+  } 
+  else if (countToUse === 0) {
+    emptyEl.classList.add("hidden");
+    filterEmptyEl.classList.remove("hidden");
+  } 
+  else {
+    emptyEl.classList.add("hidden");
+    filterEmptyEl.classList.add("hidden");
   }
 
   updateSavedActionsVisibility(countToUse);
 }
+
+document.getElementById("no-results-reset")?.addEventListener("click", () => {
+  const resetBtn = document.querySelector(".filter-reset");
+  if (resetBtn) {
+    resetBtn.click();
+  }
+});
 
 async function shouldAutoAnalyze() {
   const settings = await loadSettings();
@@ -1108,7 +1123,6 @@ async function loadSavedAnalyses() {
     listEl.appendChild(renderSavedItem(item));
   });
   applySavedFilters();
-  updateSavedEmptyState();
 }
 
 async function fetchSavedAnalysesData() {
@@ -1703,12 +1717,18 @@ filterResetBtn?.addEventListener("click", () => {
   activeFilters.minScore = 0;
   activeFilters.persona = "";
 
-  document.getElementById("filter-sales-score").value = 0;
-  document.getElementById("filter-persona").value = "";
+  const scoreInput = document.getElementById("filter-sales-score");
+  const personaInput = document.getElementById("filter-persona");
+  
+  if (scoreInput) scoreInput.value = 0;
+  if (personaInput) personaInput.value = "";
+  if (scoreLabel) scoreLabel.textContent = `0 – 100`;
 
-  document.querySelectorAll("#saved-list .saved-item").forEach(item => {
+  const items = document.querySelectorAll("#saved-list .saved-item");
+  items.forEach(item => {
     item.style.display = "";
   });
+  updateSavedEmptyState(items.length);
 
   filterPanel?.classList.add("hidden");
   filterToggle?.setAttribute("aria-expanded", "false");
@@ -1741,7 +1761,6 @@ document.addEventListener("keydown", (e) => {
     toggleSelectAllVisible();
   }
 });
-
 
 selectAllBtn?.addEventListener("click", () => {
   if (!selectionMode) return;

@@ -1106,3 +1106,53 @@ body:has(#welcome-view:not(.hidden)) {
   white-space: nowrap;
   padding: 6px;
 }
+
+.empty-state-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 40px 20px;
+  text-align: center;
+}
+
+.empty-icon {
+  margin-bottom: 16px;
+  color: #fff;
+}
+
+.empty-title {
+  font-size: 16px;
+  font-weight: 600;
+  color: #fff;
+  margin: 0 0 8px 0 !important;
+}
+
+.empty-subtitle {
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.6);
+  margin: 0 0 20px 0 !important;
+  max-width: 200px;
+  line-height: 1.4;
+}
+
+.reset-button-ui {
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  color: #fff;
+  padding: 8px 16px;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.reset-button-ui:hover {
+  background: rgba(255, 255, 255, 0.15);
+  border-color: rgba(255, 255, 255, 0.3);
+}
+
+.reset-button-ui:active {
+  transform: scale(0.98);
+}
