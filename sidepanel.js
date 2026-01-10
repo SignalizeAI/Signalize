@@ -821,7 +821,64 @@ function renderSavedItem(item) {
     handleSelection(e.shiftKey);
   });
 
+  wrapper.querySelector(".delete-saved-btn").addEventListener("click", async (e) => {
+    if (selectionMode) return;
+    e.stopPropagation();
+
+    const { data: sessionData } = await supabase.auth.getSession();
+    const user = sessionData?.session?.user;
+    if (!user) return;
+
+    await supabase
+      .from("saved_analyses")
+      .delete()
+      .eq("user_id", user.id)
+      .eq("id", item.id);
+
+    wrapper.remove();
+    updateSavedEmptyState();
+  });
+
+  let pressTimer;
+  let preventNextClick = false;
+
+  const startPress = (e) => {
+    if (selectionMode || (e.type === "mousedown" && e.button !== 0)) return;
+    
+    preventNextClick = false;
+
+    pressTimer = setTimeout(() => {
+      enterSelectionModeFromItem();
+    }, 600);
+  };
+
+  const cancelPress = () => {
+    clearTimeout(pressTimer);
+  };
+
+  const enterSelectionModeFromItem = () => {
+    selectionMode = true;
+    preventNextClick = true;
+    updateSelectionUI();
+    handleSelection(false, true); 
+  };
+
+  header.addEventListener("mousedown", startPress);
+  header.addEventListener("mouseup", cancelPress);
+  header.addEventListener("mouseleave", cancelPress);
+
+  header.addEventListener("touchstart", startPress, { passive: true });
+  header.addEventListener("touchend", cancelPress);
+  header.addEventListener("touchcancel", cancelPress);
+
   header.addEventListener("click", (e) => {
+    if (preventNextClick) {
+      e.preventDefault();
+      e.stopPropagation();
+      preventNextClick = false;
+      return;
+    }
+
     if (selectionMode) {
       if (e.target === checkbox) return;
       handleSelection(e.shiftKey, !checkbox.checked);
@@ -841,25 +898,7 @@ function renderSavedItem(item) {
     }
 
     body.classList.toggle("hidden");
-  });
-
-  wrapper.querySelector(".delete-saved-btn").addEventListener("click", async (e) => {
-    if (selectionMode) return;
-    e.stopPropagation();
-
-    const { data: sessionData } = await supabase.auth.getSession();
-    const user = sessionData?.session?.user;
-    if (!user) return;
-
-    await supabase
-      .from("saved_analyses")
-      .delete()
-      .eq("user_id", user.id)
-      .eq("id", item.id);
-
-    wrapper.remove();
-    updateSavedEmptyState();
-  });
+  }, true);
 
   return wrapper;
 }
